@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" 
+			   xmlns:mx="library://ns.adobe.com/flex/mx" width="760" height="600" xmlns:components="components.*" xmlns:models="models.*" xmlns:layouts="layouts.*">
+	<fx:Declarations>
+		<s:ArrayCollection id="cards">
+			<models:CardVO name="cradle" color="#ff0000" imageURL="http://www.coolstuffinc.com/images/Products/mtg%20art/Urzas%20Saga/Gaea%27s%20Cradle.jpg" />
+			<models:CardVO name="Groundshak" color="#00ff00" imageURL="http://www.mtgvault.com/images/cards/ONS/Krosan_Groundshaker.jpg" />
+			<models:CardVO name="Lotus" color="#0000ff" imageURL="http://www.lotustalk.com/forums/attachments/f3/125377d1246286944-lotus-brand-names-other-contexts-magic-alpha-lotus-light.jpg" />
+			<models:CardVO name="Gilded Lot" color="#ffff00" imageURL="http://www.coolstuffinc.com/images/Products/mtg%20art/Mirrodin/Gilded-Lotus.jpg" />
+			<models:CardVO name="Warchief" color="#ff00ff" imageURL="http://www.docteurquizz.com/filll/dci/cards/krosan_warchief.jpg" />
+		</s:ArrayCollection>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import components.CardItemRenderer;
+			
+			
+			private function listCreationCompleteHandler(e:Event):void{
+				var list:List = e.target as List;
+				for(var i:int = 0; i < list.dataProvider.length; i++){
+					trace(list.dataProvider.getItemAt(i).toString());
+				}
+			}
+
+		]]>
+	</fx:Script>
+	
+	<s:Group width="100%" height="100%">
+		
+		<s:Panel title="Monster" width="100%">
+				
+			<s:List dataProvider="{new ArrayCollection()}" itemRenderer="components.CardItemRenderer"
+					dropEnabled="true"
+					height="200" width="150">
+				
+				<s:layout>
+					<layouts:OverlapCardsLayout />
+					
+				</s:layout>
+			</s:List>
+		</s:Panel>
+		
+		
+		
+		<s:Panel title="Hand" width="100%" bottom="0">
+				
+			<s:List id="handList" dataProvider="{cards}" itemRenderer="components.CardItemRenderer"
+					dragEnabled="true" dragMoveEnabled="true"
+					creationComplete="listCreationCompleteHandler(event)"
+					height="300" width="100%">
+				
+				<s:layout>
+					<layouts:HandCardsLayout />
+				</s:layout>
+			</s:List>
+		</s:Panel>
+		
+	</s:Group>
+	
+	
+
+</s:Application>

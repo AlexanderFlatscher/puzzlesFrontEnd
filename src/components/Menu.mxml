@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="400" height="300" xmlns:components="components.*">
+	<fx:Declarations>
+		<s:Elastic id="elasticEasing" />
+		<s:Power id="powerEasing" />
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.effects.easing.Elastic;
+			
+			import spark.effects.easing.EaseInOutBase;
+			import spark.effects.easing.Elastic;
+			
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="menu" />
+		<s:State name="subMenu" />
+		<!--<s:State name="game" stateGroups="subMenu" />
+		<s:State name="deck" stateGroups="subMenu" />
+		<s:State name="achievement" stateGroups="subMenu" />-->
+	</s:states>
+	
+	<s:transitions>
+		<s:Transition fromState="menu" toState="subMenu">
+			<s:Parallel>
+				<s:Fade target="{menu}" />
+				<s:Move target="{menu}" />
+				<s:Fade target="{subMenu}" />
+				<s:Move target="{subMenu}" />
+			</s:Parallel>
+		</s:Transition>
+		<s:Transition fromState="subMenu" toState="menu">
+			<s:Parallel>
+				<s:Fade target="{subMenu}" />
+				<s:Move target="{subMenu}" />
+				<s:Fade target="{menu}" />
+				<s:Move target="{menu}" />
+			</s:Parallel>
+		</s:Transition>
+		<!--<s:Transition fromState="menu" toState="subMenu">
+		<s:Parallel duration="500">
+		<s:Sequence>
+		<s:Move target="{menu}" xBy="20" easer="{powerEasing}" duration="200" />
+		
+		<s:Parallel>
+		<s:Move target="{menu}" xFrom="0" xTo="{-menu.width}" easer="{powerEasing}" />
+		<s:Move target="{subMenu}" xFrom="{this.width}" xTo="-20" easer="{powerEasing}" />						
+		</s:Parallel>
+		<s:Fade target="{subMenu}" alphaFrom="0" alphaTo="1" />
+		
+		<s:Move target="{subMenu}" xFrom="-20" xTo="0" easer="{powerEasing}" duration="200" />
+		</s:Sequence>
+		<s:Fade target="{menu}" alphaFrom="1" alphaTo="0" />
+		</s:Parallel>
+		</s:Transition>
+		
+		<s:Transition fromState="subMenu" toState="menu">
+		<s:Parallel duration="500">
+		<s:Sequence>
+		<s:Move target="{subMenu}" xBy="-20" easer="{powerEasing}" duration="200" />
+		
+		<s:Parallel>
+		<s:Move target="{subMenu}" easer="{powerEasing}" />
+		<s:Move target="{menu}" xTo="20" easer="{powerEasing}" />						
+		</s:Parallel>
+		
+		<s:Move target="{menu}" easer="{powerEasing}" duration="200" />
+		</s:Sequence>
+		<s:Fade target="{menu}" alphaFrom="0" alphaTo="1" />
+		<s:Fade target="{subMenu}" alphaFrom="1" alphaTo="0" />
+		</s:Parallel>
+		</s:Transition>-->
+	</s:transitions>
+	
+	<s:Panel title="panel" id="menu" x="0" x.subMenu="{-menu.width}" alpha="1" alpha.subMenu="0">
+		<components:HoverAccordion width="500" height="400" resizeToContent="true" openDuration="250">
+			<s:NavigatorContent label="Games">
+				<s:layout>
+					<s:VerticalLayout />
+				</s:layout>
+				<s:Label text="es geht so vü einfocher ---.---" />
+				<s:Button label="subMenu state" click="currentState='subMenu'" />
+			</s:NavigatorContent>
+			<s:NavigatorContent label="Decks">
+				<s:layout>
+					<s:VerticalLayout />
+				</s:layout>
+				<s:Label text="es geht so vü einfocher ---.---" />
+			</s:NavigatorContent>
+			<s:NavigatorContent label="Achievements">
+				<s:layout>
+					<s:VerticalLayout />
+				</s:layout>
+				<s:Label text="es geht so vü einfocher ---.---" />
+			</s:NavigatorContent>
+		</components:HoverAccordion>
+	</s:Panel>
+	
+	<s:Panel title="subMenu" id="subMenu" width="500" x="0" x.menu="{this.width}" alpha="1" alpha.menu="0">
+		<s:layout>
+			<s:VerticalLayout />
+		</s:layout>
+		<s:Label text="subMenu" />
+		<s:Button label="back" click="currentState='menu'" />
+	</s:Panel>
+	
+	<!--<components:SliderContainer>
+	<components:items>
+	<components:SliderItem buttonLabel="Games">
+	<components:sliderContent>
+	<s:VGroup>
+	<s:Label text="hi dudes!" />
+	</s:VGroup>
+	</components:sliderContent>
+	</components:SliderItem>
+	
+	<components:SliderItem buttonLabel="Decks">
+	<components:sliderContent>
+	<s:VGroup>
+	<s:Label text="look at me :)!" />
+	</s:VGroup>
+	</components:sliderContent>
+	</components:SliderItem>
+	
+	<components:SliderItem buttonLabel="Achievements">
+	<components:sliderContent>
+	<s:VGroup>
+	<s:Label text="i'm here!!" />
+	</s:VGroup>
+	</components:sliderContent>
+	</components:SliderItem>
+	</components:items>
+	</components:SliderContainer>-->
+	
+</s:Group>

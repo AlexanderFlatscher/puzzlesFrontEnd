@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="horizontal"
+				creationComplete="onCreationComplete(event)">
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.ObjectUtil;
+			
+			[Bindable]
+			public var posts:ArrayCollection;
+			
+			private function onCreationComplete(event:FlexEvent):void
+			{
+				getPostsList(event);
+			}
+			
+			private function getPostsList(event:Event=null):void
+			{
+				postRO.getOperation("index").send();
+			}
+			
+			private function onIndexResult(event:ResultEvent):void
+			{
+				posts = new ArrayCollection(event.result as Array);
+			}
+			
+			private function onSaveResult(event:ResultEvent):void
+			{
+				var post:PostVO = event.result as PostVO;
+				// find old post
+				var found:PostVO;
+				var i:int = -1;
+				if(!posts)
+					posts = new ArrayCollection();
+				var l:int = posts.length;
+				while(++i<l){
+					var checkPost:PostVO = posts.getItemAt(i) as PostVO;
+					if(post.id == checkPost.id){
+						found = checkPost;
+						break;
+					}
+				}
+				// end found post
+				if(!found){
+					addTitleText.text = "";
+					addBodyText.text = "";
+					posts.addItem(post);
+				} else {
+					found.title = post.title;
+					found.body = post.body;
+				}
+			}
+			
+			private function onDestroyResult(event:ResultEvent):void
+			{
+				var a:Array = posts.source;
+				var i:int=-1;
+				var l:int = a.length;
+				while(++i < l){
+					if(a[i]==postsDG.selectedItem)
+						a.splice(i,1);
+				}
+				ArrayCollection(postsDG.dataProvider).refresh();
+			}
+			
+			private function onCreateCommentResult(event:ResultEvent):void
+			{
+				var post:PostVO = postsDG.selectedItem as PostVO;
+				if(!post.comments)
+					post.comments = new Array();
+				post.comments.push(event.result as CommentVO);
+				addCommentText.text = "";
+				commentsDG.dataProvider = new ArrayCollection(PostVO(postsDG.selectedItem).comments);
+			}
+			
+			private function onFault(event:FaultEvent):void
+			{
+				Alert.show(event.fault.faultString,event.fault.name);
+			}
+			
+			private function onAddPost(event:MouseEvent):void
+			{
+				var post:PostVO = new PostVO();
+				post.title = addTitleText.text;
+				post.body = addBodyText.text;
+				post.comments = new Array();
+				postRO.getOperation("save").send({post:post});
+			}
+			
+			private function onEditPost(event:MouseEvent):void
+			{
+				var post:PostVO = ObjectUtil.copy(postsDG.selectedItem) as PostVO;
+				post.title = editTitleText.text;
+				post.body = editBodyText.text;
+				postRO.getOperation("save").send({post:post});
+			}
+			
+			private function onDeletePost(event:MouseEvent):void
+			{
+				var post:PostVO = postsDG.selectedItem as PostVO;
+				postRO.getOperation("destroy").send({id:post.id});
+			}
+			
+			private function onCreateComment(event:MouseEvent):void
+			{
+				var post:PostVO = postsDG.selectedItem as PostVO;
+				var comment:CommentVO = new CommentVO();
+				comment.body = addCommentText.text;
+				comment.postId = post.id;
+				commentRO.getOperation("save").send({post:post,comment:comment});
+			}
+			
+			private function onItemClick(event:ListEvent):void
+			{
+				if(postsDG.selectedItem)
+					commentsDG.dataProvider = new ArrayCollection(PostVO(postsDG.selectedItem).comments);
+			}
+		]]>
+	</mx:Script>
+	<mx:Style source="flex_blog_style.css"/>
+	<!-- remote objects -->
+	<mx:RemoteObject id="postRO" destination="rubyamf" endpoint="rubyamf/gateway" source="PostsController" showBusyCursor="true" fault="onFault(event)">
+		<mx:method name="index" result="onIndexResult(event)"/>
+		<mx:method name="save" result="onSaveResult(event)"/>
+		<mx:method name="destroy" result="onDestroyResult(event)"/>
+	</mx:RemoteObject>
+	<mx:RemoteObject id="commentRO" destination="rubyamf" endpoint="rubyamf/gateway" source="CommentsController" showBusyCursor="true" fault="onFault(event)">
+		<mx:method name="save" result="onCreateCommentResult(event)"/>
+	</mx:RemoteObject>
+	<!-- design -->
+	<mx:VBox width="100%" height="100%">
+		<mx:Label x="10" y="10" text="Posts List" styleName="heading"/>
+		<mx:DataGrid width="100%" height="100%" id="postsDG" dataProvider="{posts}" itemClick="onItemClick(event)"/>
+		<mx:Label x="10" y="10" text="Selected Post Comments" styleName="heading"/>
+		<mx:DataGrid width="100%" height="100%" id="commentsDG"/>
+	</mx:VBox>
+	<mx:Form>
+		<mx:FormHeading label="Add Post"/>
+		<mx:FormItem label="Title" required="true">
+			<mx:TextInput id="addTitleText"/>
+		</mx:FormItem>
+		<mx:FormItem label="Body" required="true">
+			<mx:TextArea id="addBodyText"/>
+		</mx:FormItem>
+		<mx:FormItem>
+			<mx:Button label="Add Post" click="onAddPost(event)"/>
+		</mx:FormItem>
+		<mx:FormHeading label="Edit Post"/>
+		<mx:FormItem label="Title" required="true">
+			<mx:TextInput id="editTitleText" text="{PostVO(postsDG.selectedItem).title}"/>
+		</mx:FormItem>
+		<mx:FormItem label="Body" required="true">
+			<mx:TextArea id="editBodyText" text="{PostVO(postsDG.selectedItem).body}"/>
+		</mx:FormItem>
+		<mx:FormItem>
+			<mx:Button label="Edit Post" click="onEditPost(event)" enabled="{Boolean(postsDG.selectedItem)}"/>
+		</mx:FormItem>
+		<mx:FormHeading label="Delete Selected Post"/>
+		<mx:FormItem>
+			<mx:Button label="Delete Post" enabled="{Boolean(postsDG.selectedItem)}" click="onDeletePost(event)"/>
+		</mx:FormItem>
+		<mx:FormHeading label="Add Comment To Selected Post"/>
+		<mx:FormItem label="Comment" required="true">
+			<mx:TextArea id="addCommentText"/>
+		</mx:FormItem>
+		<mx:FormItem>
+			<mx:Button label="Add Comment" enabled="{Boolean(postsDG.selectedItem)}" click="onCreateComment(event)"/>
+		</mx:FormItem>
+	</mx:Form>
+</mx:Application>
