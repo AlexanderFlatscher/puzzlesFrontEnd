@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" 
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   creationComplete="creationCompleteHandler(event)"
+			   width="760" height="865" xmlns:components="components.*" xmlns:models="models.*" xmlns:layouts="layouts.*" xmlns:bridge="bridge.*">
+	<fx:Declarations>
+		<s:HTTPService id="registerAndLoginUser" url="http://puzzles.multimediatechnology.at/users/register_and_login"  method="POST" result="registerAndLoginUserResultHandler(event)" fault="registerAndLoginUserFaultHandler(event)" />
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.facebook.graph.Facebook;
+			
+			import events.BattleEvent;
+			
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			[Bindable]
+			private var fbid:String;
+			
+			private function creationCompleteHandler(e:Event):void {
+				Facebook.init("215484158478576", loginHandler);
+				addEventListener(BattleEvent.OPEN_BATTLE, openBattleHandler);
+				addEventListener(BattleEvent.CLOSE_BATTLE, battleCloseHandler);
+			}
+			
+			private function battleCloseHandler(e:BattleEvent):void {
+				currentState = "menu";
+				myMenu.changeBattleState(e.battleId);
+			}
+			
+			private function loginHandler(success:Object, fail:Object):void {
+				if(success){
+					fbid = success.uid
+					sendRegisterAndLoginRequest(fbid);
+				}
+				else {
+					login();
+				}
+			}
+			
+			private function login():void {
+				Facebook.login(loginHandler, ["user_birthday", "read_stream", "publish_stream", "offline_stream"]);
+			}
+			
+			private function logout():void {
+				Facebook.logout(function():void{});
+				currentState = "loggedout";
+			}
+			
+			private function openBattleHandler(e:BattleEvent):void {
+				trace("open battle handler");
+				currentState = "battle";
+				myBattle.openBattle(e.battleId);
+			}
+			
+			
+			
+			// ---- http requests ----------------------------------------------------------------------------
+			
+			private function sendRegisterAndLoginRequest(FBID:String):void {
+				registerAndLoginUser.send({id: FBID});
+			}
+			
+			protected function registerAndLoginUserResultHandler(e:ResultEvent):void
+			{
+				currentState = "menu";
+			}
+			
+			protected function registerAndLoginUserFaultHandler(e:FaultEvent):void
+			{
+				trace(e.fault.message);
+			}
+			
+		]]>
+	</fx:Script>
+
+	<s:states>
+		<s:State name="loggedout"/>
+		<s:State name="menu" stateGroups="loggedin" />
+		<s:State name="battle" stateGroups="loggedin" />
+	</s:states>
+	
+	<components:Menu includeIn="menu" id="myMenu" fbid="{fbid}" />
+	<components:Battle includeIn="battle" id="myBattle" width="100%" height="100%" />
+	
+	<!--<s:Button label="Log in" includeIn="loggedout" right="10" top="10" click="login()" skinClass="skins.FBLoginButtonSkin"/>
+	<s:Button includeIn="loggedin" label="Log out" right="10" top="10" click="logout()" skinClass="skins.FBLogoutButtonSkin"/>-->
+</s:Application>

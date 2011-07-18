@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:layouts="layouts.*"
+		 width="118" height="231">
+
+	
+	<fx:Script>
+		<![CDATA[
+			import events.CardEvent;
+			
+			import models.CardVO;
+			
+			import mx.collections.IList;
+			import mx.core.DragSource;
+			import mx.core.IUIComponent;
+			import mx.core.UIComponent;
+			import mx.events.DragEvent;
+			import mx.managers.DragManager;
+			
+			import renderers.CardItemRenderer;
+			
+			import skins.UnitBattleItemSkin;
+			
+			[Bindable]
+			public var battleState:String;
+			
+			[Bindable]
+			public var dataProvider:IList;
+			
+			public function allowToPlaceUnit():Boolean {
+				return numberOfCards == 0;
+			}
+			
+			public function allowToPlaceUpgrade():Boolean {
+				return numberOfCards > 0 && numberOfCards <= 6;
+			}
+			
+			public function get unit():CardVO {
+				return dataProvider[0];
+			}
+			
+			public function get numberOfCards():int {
+				return dataProvider.length;
+			}
+			
+			public function addUnit(card:CardVO):Boolean {
+				if(card.type == "Unit" && allowToPlaceUnit()){
+					dataProvider.addItem(card);
+					currentState == "filled";
+					return true;
+				}
+				else
+					return false;
+			}
+			
+			public function addUpgrade(card:CardVO):Boolean {
+				if(card.type == "Upgrade" && allowToPlaceUpgrade()){
+					card.targetID = (dataProvider.getItemAt(0) as CardVO).id;
+					dataProvider.addItem(card);
+					return true;
+				}
+				else
+					return false
+			}
+			
+			
+			// ---- drag n drop -------------------------------------------------------------------
+			
+			protected function dragDropHandler(e:DragEvent):void {
+				var dragInitiator:List = (e.dragInitiator as List);
+				var draggedCard:CardVO = dragInitiator.selectedItem;
+				
+				if(addUpgrade(draggedCard)){
+					dragInitiator.dataProvider.removeItemAt(dragInitiator.selectedIndex);
+					draggedCard.targetID = (dataProvider.getItemAt(0) as CardVO).id;
+					dispatchEvent(new CardEvent(CardEvent.CAST_UPGRADE, draggedCard, true));
+				}
+				else if(addUnit(draggedCard)){
+					dragInitiator.dataProvider.removeItemAt(dragInitiator.selectedIndex);
+					dispatchEvent(new CardEvent(CardEvent.SUMMON_UNIT, draggedCard, true));
+				}
+			}
+			
+			protected function dragEnterHandler(e:DragEvent):void {
+				if(battleState != "proceeding")
+					return;
+
+				var dragInitiator:List = (e.dragInitiator as List);
+				var draggedCard:CardVO = dragInitiator.selectedItem;
+				trace("card type::: " + draggedCard.type);
+				if(allowToPlaceUnit() && draggedCard.type == "Unit" || allowToPlaceUpgrade() && draggedCard.type == "Upgrade")
+					DragManager.acceptDragDrop(e.currentTarget as UIComponent);
+			}
+			
+
+
+			protected function mouseDownHandler(e:MouseEvent):void
+			{
+				trace(e.currentTarget as UIComponent);
+				var dragInitiator:MyUnitBattleItem = MyUnitBattleItem(e.currentTarget);
+				var ds:DragSource = new DragSource();
+				ds.addData(dragInitiator, "img");               
+				
+				DragManager.doDrag(dragInitiator, ds, e);
+				//DragManager.doDrag(e.currentTarget as IUIComponent, null, e);
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<s:states>
+		<s:State name="empty" />
+		<s:State name="filled" />
+		<s:State name="attacking" />
+	</s:states>
+	
+	<s:List width="100%" height="100%"
+			itemRenderer="renderers.CardItemRenderer"
+			dataProvider="@{dataProvider}"
+			dragDrop="dragDropHandler(event)"
+			dragEnter="dragEnterHandler(event)"
+			skinClass="skins.UnitBattleItemSkin">
+		
+		
+		<s:layout>
+			<layouts:OverlapCardsLayout/>
+		</s:layout>
+	</s:List>
+	
+	<s:Rect width="100%" height="100%">
+		<s:fill>
+			<s:SolidColor color="#ff0000" alpha.attacking="0.5" alpha="0.0" />
+		</s:fill>
+	</s:Rect>
+		
+</s:Group>

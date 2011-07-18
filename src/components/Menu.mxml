@@ -1,19 +1,194 @@
 <?xml version="1.0" encoding="utf-8"?>
 <s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
 		 xmlns:s="library://ns.adobe.com/flex/spark" 
-		 xmlns:mx="library://ns.adobe.com/flex/mx" width="400" height="300" xmlns:components="components.*">
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="400" height="300" xmlns:components="components.*" creationComplete="creationCompleteHandler(event)">
 	<fx:Declarations>
 		<s:Elastic id="elasticEasing" />
 		<s:Power id="powerEasing" />
+		
+		<s:HTTPService id="indexBattles" url="http://puzzles.multimediatechnology.at/battles/" method="GET" result="indexBattlesResultHandler(event)" resultFormat="xml" fault="faultHandler(event)" />
+		<s:HTTPService id="createBattles" url="http://puzzles.multimediatechnology.at/battles/" method="POST" result="createBattlesResultHandler(event)" resultFormat="xml" fault="faultHandler(event)" />
+		<s:HTTPService id="updateBattles" url="http://puzzles.multimediatechnology.at/battles/" method="POST" result="updateBattlesResultHandler(event)" resultFormat="xml" fault="faultHandler(event)" />
+		<s:HTTPService id="deleteBattles" url="http://puzzles.multimediatechnology.at/battles/" method="POST" result="deleteBattlesResultHandler(event)" resultFormat="xml" fault="faultHandler(event)" />
+	
 	</fx:Declarations>
 	
 	<fx:Script>
 		<![CDATA[
+			import com.facebook.graph.Facebook;
+			
+			import events.BattleEvent;
+			import events.ChallengeEvent;
+			
+			import models.ChallengeVO;
+			
+			import mx.collections.ArrayCollection;
 			import mx.effects.easing.Elastic;
+			import mx.events.FlexEvent;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
 			
 			import spark.effects.easing.EaseInOutBase;
 			import spark.effects.easing.Elastic;
 			
+			
+			public var fbid:String;
+			[Bindable]
+			public var rid:String;
+			[Bindable]
+			public var pageURL:String;
+			[Bindable]
+			public var challenges:ArrayCollection = new ArrayCollection();
+
+			protected function creationCompleteHandler(e:FlexEvent):void {
+				indexBattles.send({fb_id: fbid, format: 'xml'});
+				addEventListener(ChallengeEvent.ACCEPT, acceptChallengeHandler);
+				addEventListener(ChallengeEvent.DECLINE, declineChallengeHandler);
+				
+				Facebook.api("/me/apprequests/", apprequestHandler);
+			}
+			
+			private function deleteChallenge(rid:String):void{
+				var temp:String = "/" + rid + "/";
+				Facebook.api(temp, null, {method: "delete"}, "POST");
+			}
+			
+			private function acceptChallengeHandler(e:ChallengeEvent):void{
+				deleteChallenge(e.rid);
+				sendUpdateBattleRequest(fbid, e.rid);
+				Facebook.api("/me/apprequests/", apprequestHandler);
+			}
+			
+			private function declineChallengeHandler(e:ChallengeEvent):void{
+				deleteChallenge(e.rid);
+				sendDeleteBattleRequest(e.rid);
+				Facebook.api("/me/apprequests/", apprequestHandler);
+				
+			}
+			
+			// ---- http requests -------------------------------------------------------------------
+			
+			protected function indexBattlesResultHandler(e:ResultEvent):void {
+				trace("result: " + e.message);
+				
+				var xml:XML = new XML(e.result);
+				
+				for each(var battle:XML in xml.Battle){
+					
+					// should be replaced with a better (server side) solution
+					var myID:int, opponentID:int;
+					
+					if(battle.Fighter[0].fb_id == fbid){
+						myID = 0;
+						opponentID = 1;
+					}
+					else {
+						myID = 1;
+						opponentID = 0;
+					}
+					
+					// add battle menu item to battle section
+					var battleMenuItem:BattleMenuItem = new BattleMenuItem();
+					battleMenuItem.battleID = battle.attribute('id');
+					
+					Facebook.api('/' + battle.Fighter[opponentID].fb_id, function(success:Object, fail:Object):void{
+						if(success){
+							battleMenuItem.opponentName = success.name;
+						}
+						else {
+							trace(fail);
+						}
+					});
+					
+					battleMenuItem.playerState = battle.Fighter[myID].attribute("status");
+					
+					openBattlesGroup.addElement(battleMenuItem);
+				}
+			}
+			
+			public function changeBattleState(battleID:int):void {
+				var length:int = openBattlesGroup.numElements;
+				for(var i:int = 0; i < length; i++){
+					var current:BattleMenuItem = openBattlesGroup.getElementAt(i) as BattleMenuItem;
+					if(current.battleID == battleID){
+						current.playerState = current.playerState == "waiting" ? "proceeding" : "waiting";
+						break;
+					}
+				}
+			}
+			
+			protected function createBattlesResultHandler(e:ResultEvent):void
+			{
+				trace("created");
+			}
+			
+			protected function updateBattlesResultHandler(e:ResultEvent):void
+			{
+				trace("updated");
+			}
+			
+			protected function deleteBattlesResultHandler(e:ResultEvent):void
+			{
+				trace("deleted");
+			}
+			
+			protected function faultHandler(e:FaultEvent):void {
+				trace("fault: " + e.message);
+			}
+			
+			private function sendCreateBattleRequest(fighter:String, request_id:String):void
+			{
+				createBattles.send({ fbid: fighter, rid: request_id});
+			}
+			
+			private function sendUpdateBattleRequest(fighter:String, request_id:String):void
+			{
+				updateBattles.url="http://puzzles.multimediatechnology.at/battles/" + request_id;
+				updateBattles.send({ fbid: fighter, rid: request_id, _method: "put" });
+			}
+			
+			private function sendDeleteBattleRequest(request_id:String):void
+			{
+				deleteBattles.url="http://puzzles.multimediatechnology.at/battles/" + request_id;
+				deleteBattles.send({ rid: request_id, _method: "delete" });
+			}
+			
+			protected function sendNotification():void {
+				var notification:Object = {
+					name: "U've been challenged!",
+//					link: 'http://developers.facebook.com/docs/reference/dialogs/',
+					picture: 'http://fbrell.com/f8.jpg',
+					caption: 'Reference Documentation',
+					description: 'Dialogs provide a simple, consistent interface for applications to interface with users.',
+					message: 'Fuck my brain, Dude... BAZINGA!'
+				}
+				
+				Facebook.ui("apprequests", notification,handleAppRequest, "popup");
+				
+			}
+			
+			private function apprequestHandler(result:Object, fail:Object):void {
+				if(result){
+					challenges = new ArrayCollection();
+					for(var i:int = 0; i < result.length; i++){
+						challenges.addItem(new ChallengeVO(result[i]));
+					}
+				}
+				else {
+					challengesList.visible = false;
+					challengesMessage.visible = true;
+				}
+			}
+			
+			private function handleAppRequest(result:Object):void
+			{
+				for(var i:int = 0;i < result.request_ids.length;i++)
+				{
+					trace("----------------- rid: " + result.request_ids[0]);
+					sendCreateBattleRequest(Facebook.getSession().uid, result.request_ids[0]);
+					//Facebook.api("/" + result.request_ids[0].toString(), apiResponse);
+				}
+			}
 		]]>
 	</fx:Script>
 	
@@ -42,62 +217,38 @@
 				<s:Move target="{menu}" />
 			</s:Parallel>
 		</s:Transition>
-		<!--<s:Transition fromState="menu" toState="subMenu">
-		<s:Parallel duration="500">
-		<s:Sequence>
-		<s:Move target="{menu}" xBy="20" easer="{powerEasing}" duration="200" />
-		
-		<s:Parallel>
-		<s:Move target="{menu}" xFrom="0" xTo="{-menu.width}" easer="{powerEasing}" />
-		<s:Move target="{subMenu}" xFrom="{this.width}" xTo="-20" easer="{powerEasing}" />						
-		</s:Parallel>
-		<s:Fade target="{subMenu}" alphaFrom="0" alphaTo="1" />
-		
-		<s:Move target="{subMenu}" xFrom="-20" xTo="0" easer="{powerEasing}" duration="200" />
-		</s:Sequence>
-		<s:Fade target="{menu}" alphaFrom="1" alphaTo="0" />
-		</s:Parallel>
-		</s:Transition>
-		
-		<s:Transition fromState="subMenu" toState="menu">
-		<s:Parallel duration="500">
-		<s:Sequence>
-		<s:Move target="{subMenu}" xBy="-20" easer="{powerEasing}" duration="200" />
-		
-		<s:Parallel>
-		<s:Move target="{subMenu}" easer="{powerEasing}" />
-		<s:Move target="{menu}" xTo="20" easer="{powerEasing}" />						
-		</s:Parallel>
-		
-		<s:Move target="{menu}" easer="{powerEasing}" duration="200" />
-		</s:Sequence>
-		<s:Fade target="{menu}" alphaFrom="0" alphaTo="1" />
-		<s:Fade target="{subMenu}" alphaFrom="1" alphaTo="0" />
-		</s:Parallel>
-		</s:Transition>-->
+
 	</s:transitions>
 	
-	<s:Panel title="panel" id="menu" x="0" x.subMenu="{-menu.width}" alpha="1" alpha.subMenu="0">
+	<s:Panel title="Menu" id="menu" x="0" x.subMenu="{-menu.width}" alpha="1" alpha.subMenu="0">
 		<components:HoverAccordion width="500" height="400" resizeToContent="true" openDuration="250">
-			<s:NavigatorContent label="Games">
+			<s:NavigatorContent label="Battles" id="battlesNavigatorContent">
 				<s:layout>
 					<s:VerticalLayout />
 				</s:layout>
-				<s:Label text="es geht so vü einfocher ---.---" />
+				<s:Label text="{pageURL}" />
 				<s:Button label="subMenu state" click="currentState='subMenu'" />
+				<s:Button label="challenge Friend" click="sendNotification()" />
+				
+				<s:VGroup id="openBattlesGroup">
+					
+				</s:VGroup>
 			</s:NavigatorContent>
-			<s:NavigatorContent label="Decks">
+			<s:NavigatorContent label="Challenges">
 				<s:layout>
 					<s:VerticalLayout />
 				</s:layout>
-				<s:Label text="es geht so vü einfocher ---.---" />
+				
+				<s:List borderVisible="false" selectionColor="#ffffff" rollOverColor="#ffffff" dataProvider="{challenges}" width="100%" itemRenderer="renderers.ChallengeItemRenderer" id="challengesList" >
+					<s:layout>
+						<s:VerticalLayout />
+					</s:layout>
+				</s:List>
+				
+				<s:Label text="You have no outstanding challenges." id="challengesMessage" visible="false"/>
+				
 			</s:NavigatorContent>
-			<s:NavigatorContent label="Achievements">
-				<s:layout>
-					<s:VerticalLayout />
-				</s:layout>
-				<s:Label text="es geht so vü einfocher ---.---" />
-			</s:NavigatorContent>
+
 		</components:HoverAccordion>
 	</s:Panel>
 	
@@ -108,33 +259,5 @@
 		<s:Label text="subMenu" />
 		<s:Button label="back" click="currentState='menu'" />
 	</s:Panel>
-	
-	<!--<components:SliderContainer>
-	<components:items>
-	<components:SliderItem buttonLabel="Games">
-	<components:sliderContent>
-	<s:VGroup>
-	<s:Label text="hi dudes!" />
-	</s:VGroup>
-	</components:sliderContent>
-	</components:SliderItem>
-	
-	<components:SliderItem buttonLabel="Decks">
-	<components:sliderContent>
-	<s:VGroup>
-	<s:Label text="look at me :)!" />
-	</s:VGroup>
-	</components:sliderContent>
-	</components:SliderItem>
-	
-	<components:SliderItem buttonLabel="Achievements">
-	<components:sliderContent>
-	<s:VGroup>
-	<s:Label text="i'm here!!" />
-	</s:VGroup>
-	</components:sliderContent>
-	</components:SliderItem>
-	</components:items>
-	</components:SliderContainer>-->
 	
 </s:Group>

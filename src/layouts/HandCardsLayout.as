@@ -22,6 +22,7 @@ package layouts
 			var count:int = target.numElements;
 			var middle:Number = target.width / 2;
 			var relativePosition:Number = - count/2 + 0.5;
+			trace("relpo: " + relativePosition);
 			
 			for(var i:int = 0; i < count; i++){
 				var element:ILayoutElement = (useVirtualLayout ? target.getVirtualElementAt(i) : target.getElementAt(i));
@@ -29,16 +30,28 @@ package layouts
 				element.setLayoutBoundsSize(NaN, NaN);
 				
 				var relativePositionToI:Number = relativePosition + i;
-				var roatationAngle:Number = cardAngle * relativePositionToI;
+				var rotationAngle:Number = cardAngle * relativePositionToI;
 				var matrix:Matrix = new Matrix();
-				matrix.rotate(roatationAngle);
+				matrix.rotate(rotationAngle);
 				
+				var translateX:Number = middle;
 				var translateY:Number = 0;
-				if(relativePositionToI < 0)
-					translateY = - element.getLayoutBoundsWidth() * Math.sin(roatationAngle);
-				if(Math.abs(relativePositionToI) > 1)
+				if(relativePositionToI < 0){
+					translateX += - element.getLayoutBoundsWidth() * Math.cos(rotationAngle);
+					translateY = - element.getLayoutBoundsWidth() * Math.sin(rotationAngle);
+				}
+				
+				if(relativePositionToI > 0){
+					translateX += element.getLayoutBoundsWidth();
+				}
+				
+				
+				if(Math.abs(relativePositionToI) > 1){
 					translateY += element.getLayoutBoundsHeight() * (relativePositionToI < 0 ? Math.sin(- cardAngle * (relativePositionToI + 1)) : Math.sin(cardAngle * (relativePositionToI - 1)));
-				matrix.translate(middle + relativePositionToI * 80, translateY);
+				}
+				//translateX += relativePositionToI * 80;
+				
+				matrix.translate(translateX/*middle + relativePositionToI * 80*/, translateY);
 				element.setLayoutMatrix(matrix, true);
 			}
 		}

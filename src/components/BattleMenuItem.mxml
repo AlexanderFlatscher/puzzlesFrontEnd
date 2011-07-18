@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:VGroup xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100" height="100" gap="0">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import events.BattleEvent;
+			
+			import mx.events.FlexEvent;
+			
+			public var battleID:int;
+			[Bindable]
+			public var opponentName:String;
+			[Bindable]
+			public var playerState:String;
+
+
+		]]>
+	</fx:Script>
+	
+	<s:HGroup gap="0">
+		<s:Label text="Opponent: " />
+		<s:Label text="{opponentName}" />
+	</s:HGroup>
+	
+	<s:HGroup gap="0">
+		<s:Label text="Your State: " />
+		<s:Label text="{playerState}" />
+	</s:HGroup>
+	
+	<s:Button id="button" label="open battle" click="dispatchEvent(new BattleEvent(BattleEvent.OPEN_BATTLE, battleID, true))" visible="{playerState == 'proceeding' ? true : false}" />
+</s:VGroup>

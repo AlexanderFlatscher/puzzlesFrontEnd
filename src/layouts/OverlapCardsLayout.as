@@ -6,7 +6,7 @@ package layouts
 	
 	public class OverlapCardsLayout extends LayoutBase
 	{
-		public var overlap:int = 20;
+		public var overlap:int = 11;
 		
 		public function OverlapCardsLayout()
 		{
@@ -21,16 +21,10 @@ package layouts
 				var element:ILayoutElement = (useVirtualLayout ? target.getVirtualElementAt(i) : target.getElementAt(i));
 				
 				element.setLayoutBoundsSize(NaN, NaN);
-				element.setLayoutBoundsPosition(0, height - element.getLayoutBoundsHeight() - i * overlap);
+				element.setLayoutBoundsPosition(0, i * overlap);
 				
 			}
 		}
 		
-		override public function measure():void {
-			super.measure();
-//			var element:ILayoutElement = (useVirtualLayout ? target.getVirtualElementAt(0) : target.getElementAt(0));
-//			target.measuredHeight = element.getLayoutBoundsHeight() + target.numElements * overlap;
-//			target.measuredWidth = element.getLayoutBoundsWidth();
-		}
 	}
 }

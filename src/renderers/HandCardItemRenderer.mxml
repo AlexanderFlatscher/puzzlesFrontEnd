@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="false" creationComplete="creationCompleteHandler(event)" click="itemClickHandler(event)" height="207" width="142">
+	<fx:Script>
+		<![CDATA[
+			import models.CardVO;
+			
+			import mx.collections.XMLListCollection;
+			import mx.events.ItemClickEvent;
+			
+			private function creationCompleteHandler(e:Event):void{
+				var loader:Loader = new Loader();
+				loader.contentLoaderInfo.addEventListener(Event.COMPLETE, loaderCompleteHandler);
+				loader.load(new URLRequest(Properties.serverUrl + data.imageURL));
+			}
+			
+			private function loaderCompleteHandler(e:Event):void {
+				var loader:Loader = (e.target as LoaderInfo).loader;
+				//image.source = loader.content;
+				data.image = loader.content;
+			}
+			
+			protected function itemClickHandler(e:MouseEvent):void{
+				var itemClickEvent:ItemClickEvent = new ItemClickEvent(ItemClickEvent.ITEM_CLICK, true);
+				itemClickEvent.item = data;
+				itemClickEvent.index = itemIndex;
+				dispatchEvent(itemClickEvent);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="normal" />
+		<s:State name="hovered" />
+		<s:State name="selected" />
+		<s:State name="dragging"/>
+	</s:states>
+	
+	<s:Graphic>
+		<s:BitmapImage source="{data.image}" id="image" width="{this.width}" height="{this.height}" smooth="true" />
+	</s:Graphic>
+	
+	
+	<!--<s:Label id="nameLabel" text="{data.name}" left="20" bottom="2" color="#ffffff" />-->
+	<s:Label id="manaLabel" text="{data.mana}" left="12" bottom="96" color="#ffffff" />
+	<s:Label id="descriptionLabel" text="{data.description}" width="105" left="24" bottom="19" fontSize="7" />
+	
+	<s:Label id="healthLabel" text="{data.health}" left="7" top="7" visible="false"/>
+	<s:Label id="attackLabel" text="{data.attack}" left="5" bottom="5" visible="false"/>
+	
+	
+</s:ItemRenderer>
